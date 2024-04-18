@@ -1,0 +1,5 @@
+class myTRandom: public TRandom3{
+  double KleinNishina(double E);
+};
+
+
