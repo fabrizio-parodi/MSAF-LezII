@@ -1,8 +1,4 @@
-
-double genKN(double E, TRandom3 *rnd){
-  double cthe = rnd->Rndm()*2-1;
-  return cthe;
-}
+#include "myTRandom.cpp"
 
 double kn(double *x, double *par){
   double me   = 0.511;
@@ -14,15 +10,16 @@ double kn(double *x, double *par){
 }
 
 void TestKN(){
-  TRandom3 rnd;
+  myTRandom rnd;
   TCanvas *c = new TCanvas();
-  TH1D *h = new TH1D("h","",100,-1,1);
+  TH1D    *h = new TH1D("h","",100,-1,1);
 
   double E=0.1;
-  
-  for (int i=0;i<1000000;i++){
+  double Ep, theta;  
+  for (int i=0;i<10000000;i++){
     //  Prende E e genera distribuzione in cos(theta)
-    h->Fill(genKN(E,&rnd));
+    rnd.KleinNishina(E,Ep,theta);
+    h->Fill(cos(theta));
   }
   h->Draw();
   TF1 *f = new TF1("Klein Nishina",kn,-1,1,2);
@@ -30,6 +27,6 @@ void TestKN(){
   f->SetParameter(1,1);
   double fint = f->Integral(-1,1);
   f->SetParameter(1,1/fint*h->GetEntries()*h->GetBinWidth(1));
-  f->Draw();
-  h->Draw("SAME");
+  h->Draw();
+  f->Draw("SAME");
 }

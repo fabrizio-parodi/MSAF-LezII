@@ -1,6 +1,7 @@
 #include <TRandom3.h>
 class myTRandom: public TRandom3{
-  double KleinNishina(double E);
+public:
+  void KleinNishina(double E, double& Ep, double& theta);
 };
 
 
