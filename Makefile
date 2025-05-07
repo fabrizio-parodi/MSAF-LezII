@@ -9,7 +9,7 @@ myTRandom.o: myTRandom.cpp
 	$(CC) $(CFLAGS) -c myTRandom.cpp      $(CFLAGSROOT)
 Geometry.o: Geometry.cpp
 	$(CC) $(CFLAGS) -c Geometry.cpp      $(CFLAGSROOT)
-SimSci: SimSci.cpp myTRandom.o Geometry.o
-	$(CC) $(CFLAGS) -o SimSci SimSci.cpp Geometry.o myTRandom.o $(CFLAGSROOT) $(LIBSROOT)
+SimSci: SimSciSol.cpp myTRandom.o Geometry.o
+	$(CC) $(CFLAGS) -o SimSci SimSciSol.cpp Geometry.o myTRandom.o $(CFLAGSROOT) $(LIBSROOT)
 clean:
 	rm *.o

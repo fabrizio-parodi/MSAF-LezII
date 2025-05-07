@@ -1,172 +1,152 @@
-#include <TH1D.h>
-#include <TGraph.h>
-#include <TVector3.h>
-#include <TPad.h>
-#include <TCanvas.h>
-#include <TArc.h>
-#include <TApplication.h>
-#include <TFile.h>
-#include <TStopwatch.h>
 #include <iostream>
-#include "myTRandom.h"
+
 #include "Geometry.h"
+#include "myTRandom.h"
 
-using namespace std;
+#include <TH1D.h>
+#include <TFile.h>
+#include <TApplication.h>
+#include <TStopwatch.h>
 
-namespace par{
-  // Parametri dello scintillatore (NaI)
-  double me      = 0.511;
-  double rho     = 3.67; // g/cm^3
-  double cm      = 0.01;
-  // Volume scintillatore cilindro di raggio r con asse z, una base a z=0, l'altra a z=dz
-  double r       = 0.02;
-  double dz      = 0.025;
-  double dist    = 0.3;
-  double coslim  = dist/sqrt(dist*dist+r*r);
-  // Fotone
-  // Energia
-  double en      = 0.6617;
-  // Numero di eventi
-  int    nev     = 100000;
-  // Massimo numero di fotoni graficati
-  int    ngr     = 100;
-  // ROOT & utilities
-  myTRandom   *rnd;
-  Geometry    *geo;
-};
+namespace {
 
+  // Detector parameters
+  struct DetectorParams {
+    double density        = 3.67;     // g/cm³ (NaI)
+    double radius         = 0.02;     // m
+    double length         = 0.025;    // m
+  };
 
-TVector3 GetDirection(TVector3 d, double theta, double phi){
-
-  TVector3 dp;
-  if (d.Z()!=1){
-    dp.SetX(d.X()*cos(theta)+sin(theta)/sqrt(1-pow(d.Z(),2))*(d.X()*d.Z()*cos(phi)-d.Y()*sin(phi)));
-    dp.SetY(d.Y()*cos(theta)+sin(theta)/sqrt(1-pow(d.Z(),2))*(d.Y()*d.Z()*cos(phi)+d.X()*sin(phi)));
-    dp.SetZ(d.Z()*cos(theta)-sqrt(1-pow(d.Z(),2))*sin(theta)*cos(phi));
-  } else if (d.Z()==1) {
-    dp.SetX(sin(theta)*cos(phi));
-    dp.SetY(sin(theta)*sin(phi));
-    dp.SetZ(cos(theta));
-  } else if (d.Z()==-1) {
-    dp.SetX(sin(theta)*cos(phi+TMath::Pi()));
-    dp.SetY(sin(theta)*sin(phi+TMath::Pi()));
-    dp.SetZ(-cos(theta));
-  }
-  return dp;
+  struct SourceParams {
+    double sourceDistance = 0.3;      // m
+    double energy         = 0.6617;   // MeV (Cs-137)
+  };
+  
+  struct RunParams {
+    int numEvents         = 100000;
+    int maxGraphPoints    = 100;
+  };
+    
+  DetectorParams det;
+  SourceParams   src;
+  RunParams      run;
+  myTRandom* randomGenerator;
+  Geometry* detectorGeometry;
 
 }
 
-
-TGraph grPhoto("NaiPhoto.data");
-TGraph grCompton("NaiCompton.data");
-
-double CalcEnergyDeposition(TVector3 x0, TVector3 d, double E){
-  // Return the energy deposition
-  
-  double Edep = 0;
-  do {
+TVector3 CalculateNewDirection(const TVector3& currentDirection, double theta, double phi) {
+    TVector3 newDirection;
     
-    //TODO-I compute mu
-    
-    //TODO-II compute free path
-    double s;
-    
-    // calcolo posizione 
-    TVector3 x  = x0 + d*s;
-    x0 = x;
-    
-    // check that the particle is still in the detector
-    if (!par::geo->Contains(x))
-      break;
-    //Update graphics
-    par::geo->Update(x);
-
-    //TODO-III choose interaction
-    bool lfoto = true; // True if Photoelectric
-    if (lfoto){
-      Edep = E;
-      E = 0;
+    if (currentDirection.Z() == 1.0) {
+      newDirection.SetXYZ(sin(theta) * cos(phi),sin(theta) * sin(phi),cos(theta));
+    } else if (currentDirection.Z() == -1.0) {
+      newDirection.SetXYZ(sin(theta) * cos(phi + TMath::Pi()),sin(theta) * sin(phi + TMath::Pi()),-cos(theta));
     } else {
-      //TODO-IV
-      //Edep,E, phi,theta
-      double theta=0,phi=0;
-      d = GetDirection(d,theta,phi);
-    }
-  } while (E!=0);
-
-  return Edep;
-
-}
-
-void SimSci(string modus){
-  
-  // Three options
-  // detsimple - particle direction along z-axis
-  // det       - particle issued uniformly
-  // bias      - source bias
-
-  par::rnd = new myTRandom;
-  par::rnd->SetSeed(time(NULL));
-  
-  par::geo = new Geometry("CYLINDER");
-  par::geo->SetDim(par::r,par::dz);  
-  par::geo->Draw();
-
-  TH1D *hE = new TH1D("hE","",100,0,1.0);
-  TStopwatch tstop;
-
-  for (int iev=0;iev<par::nev;iev++){
-    // Particle direction
-    TVector3 x0,d;
-    // Event weight
-    double w = 1;
-    if (modus=="detsimple"){
-      // Punto d'ingresso (0,0,0) versore l'asse z
-      x0 = TVector3(0,0,0);
-      d  = TVector3(0,0,1);
-    } else if (modus=="det"){
-    } else if (modus=="bias"){
+        const double sqrtTerm = sqrt(1.0 - currentDirection.Z() * currentDirection.Z());
+        newDirection.SetXYZ(
+            currentDirection.X() * cos(theta) + (sin(theta) / sqrtTerm) * (currentDirection.X() * currentDirection.Z() * cos(phi) - currentDirection.Y() * sin(phi)),
+            currentDirection.Y() * cos(theta) + (sin(theta) / sqrtTerm) * (currentDirection.Y() * currentDirection.Z() * cos(phi) + currentDirection.X() * sin(phi)),
+            currentDirection.Z() * cos(theta) - sqrtTerm * sin(theta) * cos(phi)
+        );
     }
     
-    par::geo->Event(x0);
-    double Edep  = CalcEnergyDeposition(x0,d,par::en);
+    return newDirection;
+}
+
+double CalculateEnergyDeposition(const TVector3& startPoint, TVector3 direction, double energy) {
+    TVector3 currentPosition = startPoint;
+    double energyDeposited = 0.0;
     
-    if (Edep!=0){
-      // TODO-V
-      // Energy resolution
-      double Emeas = Edep;
-      hE->Fill(Emeas,w);
+    while (energy > 0.0) {
+      // Calculate interaction point
+      double interactionLength = 0; /* TODO: Calculate mean free path */
+      currentPosition += direction * interactionLength;
+      
+      if (!detectorGeometry->Contains(currentPosition)) {
+	break;
+      }
+      
+      detectorGeometry->UpdatePosition(currentPosition);
+      
+      bool isPhotoelectric = false; /* TODO: Determine interaction type */
+      if (isPhotoelectric) {
+	energyDeposited += energy;
+	energy = 0.0;
+      } else {
+	// Compton scattering
+	double scatteredEnergy, scatteringTheta;
+	randomGenerator->KleinNishina(energy, scatteredEnergy, scatteringTheta);
+        
+	double scatteringPhi = 2.0 * TMath::Pi() * randomGenerator->Rndm();
+	direction = CalculateNewDirection(direction, scatteringTheta, scatteringPhi);
+        
+	energyDeposited += (energy - scatteredEnergy);
+	energy = scatteredEnergy;
+      }
     }
-  }
-  
-  TCanvas *c = new TCanvas("h","Energy",620,10,320,320);
-  c->Draw();
-  
-  hE->Draw("E");
-  
-  string file="output_"; file+=modus; file+=".root";
-  TFile f(file.c_str(),"recreate");
-  hE->Write();
-  f.Close();
-
+    
+    return energyDeposited;
 }
 
-#ifndef __CINT__
-int main(int argc,char* argv[]){
-  if (argc!=2){
-    cout << "Devi specificare un parametro" << endl;
-    cout << " detsimple  - simulazione dettagliata semplificata (fotone lungo z) " << endl;
-    cout << " det        - simulazione dettagliata con direzione corretta " << endl;
-    cout << " bias       - simulazione con bias della sorgente " << endl;
-    return 1;
-  }
-  TApplication app("app",0,NULL);
-
-  SimSci(argv[1]);
-
-  gPad->Update();
-  app.Run(true);
-
-  return 0;
+void RunSimulation(const std::string& mode) {
+    randomGenerator = new myTRandom();
+    randomGenerator->SetSeed(time(nullptr));
+    
+    detectorGeometry = new Geometry("CYLINDER");
+    detectorGeometry->SetDimensions(det.radius, det.length);
+    detectorGeometry->Draw();
+    
+    TH1D* energyHistogram = new TH1D("hE", "Energy Deposition", 100, 0, 1.0);
+    TStopwatch timer;
+    
+    for (int event = 0; event < run.numEvents; ++event) {
+        TVector3 startPoint, direction;
+        double weight = 1.0;
+        
+        if (mode == "detsimple") {
+	  startPoint = TVector3(0, 0, 0);
+	  direction = TVector3(0, 0, 1);
+        } else if (mode == "det") {
+	  // TODO: Implement general case
+        }  else if (mode == "bias") {
+            // TODO: Implement biased case
+        }
+        
+        detectorGeometry->StartEvent(startPoint);
+        const double depositedEnergy = CalculateEnergyDeposition(startPoint, direction, src.energy);
+        
+        if (depositedEnergy > 0.0) {
+	  const double measuredEnergy = depositedEnergy; /* TODO: Apply energy resolution */
+	  energyHistogram->Fill(measuredEnergy, weight);
+        }
+    }
+    
+    // Save results
+    TFile outputFile(Form("output_%s.root", mode.c_str()), "RECREATE");
+    energyHistogram->Write();
+    outputFile.Close();
+    
+    // Cleanup
+    delete randomGenerator;
+    delete detectorGeometry;
 }
-#endif
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cout << "Usage: " << argv[0] << " <mode>\n"
+                  << "Available modes:\n"
+                  << "  detsimple - Simplified simulation (photon along z-axis)\n"
+                  << "  det       - Detailed simulation with correct direction\n"
+                  << "  bias      - Simulation with source bias\n";
+        return 1;
+    }
+    
+    TApplication app("app", &argc, argv);
+    RunSimulation(argv[1]);
+    
+    gPad->Update();
+    app.Run();
+    
+    return 0;
+}

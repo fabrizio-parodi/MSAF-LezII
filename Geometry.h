@@ -1,32 +1,34 @@
-#ifndef _GEOMETRY
-#define _GEOMETRY
+#ifndef GEOMETRY_H
+#define GEOMETRY_H
 
 #include <string>
+#include <vector>
 #include <TCanvas.h>
 #include <TGraph.h>
 #include <TVector3.h>
 
-class Geometry{
+class Geometry {
 public:
-  Geometry(std::string type, int ngr=100){
-    m_evt  = -1;
-    m_ngr  =  ngr;
-    m_type =  type;
-    m_grxy.resize(ngr);
-    m_grzy.resize(ngr);
-  }
-  void SetDim(double, double, double=0);
-  bool Contains(TVector3);
-  void Draw();
-  void Event(TVector3);
-  void Update(TVector3);
+    Geometry(const std::string& type, int ngr = 100);
+    ~Geometry();
+    
+    void SetDimensions(double dim1, double dim2, double dim3 = 0);
+    bool Contains(const TVector3& point);
+    void Draw();
+    void StartEvent(const TVector3& startPoint);
+    void UpdatePosition(const TVector3& point);
+    
 private:
-  std::string m_type;
-  int         m_evt,m_ngr;
-  TCanvas    *m_c;
-  double      m_dim[3];
-  std::vector<TGraph> m_grxy;
-  std::vector<TGraph> m_grzy;
+    std::string m_type;
+    int m_eventCounter;
+    int m_maxGraphPoints;
+    TCanvas* m_canvas;
+    double m_dimensions[3];
+    std::vector<TGraph> m_xyGraphs;
+    std::vector<TGraph> m_zyGraphs;
+    
+    void InitializeGraphs();
+    void ClearGraphs();
 };
 
-#endif
+#endif // GEOMETRY_H
