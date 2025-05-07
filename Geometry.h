@@ -10,7 +10,6 @@
 class Geometry {
 public:
     Geometry(const std::string& type, int ngr = 100);
-    ~Geometry();
     
     void SetDimensions(double dim1, double dim2, double dim3 = 0);
     bool Contains(const TVector3& point);
