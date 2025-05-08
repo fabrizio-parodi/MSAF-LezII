@@ -133,9 +133,11 @@ void RunSimulation(const std::string& mode) {
 	
     }
 
-    TCanvas *enCanvas = new TCanvas("enCanvas","Energia Depositata",10,10,600,300);
+    TCanvas *enCanvas = new TCanvas("enCanvas","Energia Depositata",400,10,500,320);
     enCanvas->Draw();
     energyHistogram->Draw();
+    energyHistogram->GetXaxis()->SetTitle("Energy [MeV]");
+    energyHistogram->GetYaxis()->SetTitle("N events/[0.01 MeV]");
     
     // Save results
     TFile outputFile(Form("output_%s.root", mode.c_str()), "RECREATE");

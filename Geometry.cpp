@@ -12,7 +12,6 @@ Geometry::Geometry(const std::string& type, int ngr)
     m_zyGraphs.resize(m_maxGraphPoints);
 }
 
-
 void Geometry::SetDimensions(double dim1, double dim2, double dim3) {
     if (m_type == "CYLINDER") {
         m_dimensions[0] = dim1; // radius
