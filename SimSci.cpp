@@ -13,12 +13,12 @@ namespace {
   // Detector parameters
   struct DetectorParams {
     double density        = 3.67;     // g/cm³ (NaI)
-    double radius         = 0.02;     // m
-    double length         = 0.025;    // m
+    double radius         = 2;        // cm
+    double length         = 2.5;      // cm
   };
 
   struct SourceParams {
-    double sourceDistance = 0.3;      // m
+    double sourceDistance = 30;       // cm
     double energy         = 0.6617;   // MeV (Cs-137)
   };
   
@@ -29,6 +29,11 @@ namespace {
     
   DetectorParams det;
   SourceParams   src;
+
+  //Cross-section files
+  TGraph muCompton("NaICompton.data");
+  TGraph muPhoto("NaIPhoto.data");
+
   RunParams      run;
   myTRandom* randomGenerator;
   Geometry* detectorGeometry;
@@ -90,12 +95,6 @@ double CalculateEnergyDeposition(const TVector3& startPoint, TVector3 direction,
 }
 
 void RunSimulation(const std::string& mode) {
-    randomGenerator = new myTRandom();
-    randomGenerator->SetSeed(time(nullptr));
-    
-    detectorGeometry = new Geometry("CYLINDER");
-    detectorGeometry->SetDimensions(det.radius, det.length);
-    detectorGeometry->Draw();
     
     TH1D* energyHistogram = new TH1D("hE", "Energy Deposition", 100, 0, 1.0);
     TStopwatch timer;
@@ -127,9 +126,6 @@ void RunSimulation(const std::string& mode) {
     energyHistogram->Write();
     outputFile.Close();
     
-    // Cleanup
-    delete randomGenerator;
-    delete detectorGeometry;
 }
 
 int main(int argc, char* argv[]) {
@@ -141,12 +137,29 @@ int main(int argc, char* argv[]) {
                   << "  bias      - Simulation with source bias\n";
         return 1;
     }
-    
+
+    // Setup Random Generator
+    randomGenerator = new myTRandom();
+    randomGenerator->SetSeed(time(nullptr));
+
+    // Define Geometry
+    detectorGeometry = new Geometry("CYLINDER");
+    detectorGeometry->SetDimensions(det.radius, det.length);
+    detectorGeometry->Draw();
+
+    // Graphics 
     TApplication app("app", &argc, argv);
+
+    // Simulation
     RunSimulation(argv[1]);
-    
+
+    // Stop and look to the results
     gPad->Update();
     app.Run();
     
+    // Cleanup
+    delete randomGenerator;
+    delete detectorGeometry;
+
     return 0;
 }
