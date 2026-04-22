@@ -15,6 +15,8 @@ namespace {
     double density        = 3.67;     // g/cm³ (NaI)
     double radius         = 2;        // cm
     double length         = 2.5;      // cm
+    double sigA           = 0.02;
+    double sigB           = 0.02;
   };
 
   struct SourceParams {
